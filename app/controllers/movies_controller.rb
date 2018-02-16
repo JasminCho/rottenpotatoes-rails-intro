@@ -1,5 +1,4 @@
 class MoviesController < ApplicationController
-
   def movie_params
     params.require(:movie).permit(:title, :rating, :description, :release_date)
   end
@@ -11,7 +10,44 @@ class MoviesController < ApplicationController
   end
 
   def index
-    @movies = Movie.all
+    # extract params
+    @all_ratings = Movie.all_ratings
+    @sort_option = params[:sort]
+    @rating_options = params[:ratings]
+
+    # fill the missing param from session if available
+    if @sort_option.nil?
+      @sort_option = session[:sort]
+      if @sort_option
+        flash.keep
+        redirect_to movies_path(sort: @sort_option, ratings: @rating_options)
+        return
+      end
+    end
+
+    if @rating_options.nil?
+      @rating_options = session[:ratings]
+      if @rating_options
+        flash.keep
+        redirect_to movies_path(sort: @sort_option, ratings: @rating_options)
+        return
+      end
+    end
+
+    if @sort_option.nil? && @rating_options.nil?
+      @movies = Movie.all
+    elsif @sort_option && @rating_options.nil?
+      @movies = Movie.order(@sort_option)
+      session[:sort] = @sort_option
+    elsif @rating_options && @sort_option.nil?
+      @movies = Movie.where(rating: @rating_options.keys)
+      session[:ratings] = @rating_options
+    else
+      @movies = Movie.where(rating: @rating_options.keys).order(@sort_option)
+      session[:sort] = @sort_option
+      session[:ratings] = @rating_options
+    end
+
   end
 
   def new
